@@ -193,7 +193,7 @@ void EndScreen() {
     bool keyPressed = false;
 
     system("cls");
-    system("color 8F");
+    system("color 84");
 
     while (!keyPressed) {
         system("cls");
